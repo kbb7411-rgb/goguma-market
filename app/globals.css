@@ -1,0 +1,72 @@
+@import 'tailwindcss';
+
+/*
+ * 고구마마켓 디자인 토큰
+ * 당근마켓의 레이아웃/여백 감각은 그대로 가져오되,
+ * 브랜드 컬러만 자색고구마 껍질(purple) + 속살(amber)로 바꿨다.
+ */
+@theme {
+  --color-ggm-50: #fbf4f8;
+  --color-ggm-100: #f5e6ef;
+  --color-ggm-200: #e9c9dd;
+  --color-ggm-300: #d7a2c3;
+  --color-ggm-400: #bd71a1;
+  --color-ggm-500: #9a3f76; /* 브랜드 메인 */
+  --color-ggm-600: #82355f;
+  --color-ggm-700: #6a2b4e;
+  --color-ggm-800: #55243f;
+  --color-ggm-900: #3f1b2f;
+
+  --color-yam-300: #ffd08a;
+  --color-yam-400: #f9b955;
+  --color-yam-500: #f5a93c; /* 고구마 속살 = 포인트 컬러 */
+  --color-yam-600: #dd8f22;
+
+  --color-cream: #fffaf4;
+
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+    'Apple SD Gothic Neo', 'Segoe UI', Roboto, 'Helvetica Neue', 'Malgun Gothic', sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-white text-neutral-800 antialiased;
+    font-family: var(--font-sans);
+    word-break: keep-all;
+  }
+
+  /* 브랜드 컬러 포커스 링 */
+  :focus-visible {
+    outline: 2px solid var(--color-ggm-500);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* 당근마켓 특유의 꽉 찬 라운드 버튼 */
+  .btn-primary {
+    @apply inline-flex h-12 w-full items-center justify-center rounded-lg bg-ggm-500 px-5
+           text-[15px] font-bold text-white transition
+           hover:bg-ggm-600 active:bg-ggm-700
+           disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400;
+  }
+
+  .btn-outline {
+    @apply inline-flex h-12 w-full items-center justify-center rounded-lg border border-neutral-200
+           bg-white px-5 text-[15px] font-bold text-neutral-700 transition hover:bg-neutral-50;
+  }
+
+  .field {
+    @apply h-12 w-full rounded-lg border border-neutral-200 bg-white px-4 text-[15px]
+           text-neutral-900 placeholder:text-neutral-400
+           focus:border-ggm-500 focus:outline-none;
+  }
+
+  .label {
+    @apply mb-1.5 block text-[13px] font-semibold text-neutral-600;
+  }
+}
