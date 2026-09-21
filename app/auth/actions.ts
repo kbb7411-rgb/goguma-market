@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { siteUrl } from '@/lib/env'
 
 export type AuthState = {
   error?: string
@@ -13,10 +14,6 @@ export type AuthState = {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
-
-function siteUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-}
 
 /** Supabase 영문 에러 메시지를 한국어로 */
 function translate(message: string) {

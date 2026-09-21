@@ -1,9 +1,10 @@
+import { SUPABASE_URL } from '@/lib/env'
+
 const BUCKET = 'ggm-products'
 
 /** Storage 경로 → 공개 URL */
 export function imageUrl(path: string) {
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL
-  return `${base}/storage/v1/object/public/${BUCKET}/${path}`
+  return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`
 }
 
 /** 12000 → "12,000원", 0 → "나눔" */

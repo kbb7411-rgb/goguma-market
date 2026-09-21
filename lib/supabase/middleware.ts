@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { SUPABASE_KEY, SUPABASE_URL, hasSupabaseEnv } from '@/lib/env'
 
 /** 로그인해야만 들어갈 수 있는 경로 */
 const PROTECTED_PREFIXES = ['/mypage', '/write', '/chat']
@@ -14,9 +15,20 @@ const GUEST_ONLY_PREFIXES = ['/login', '/signup']
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
+  // 환경 변수가 없으면 여기서 던지지 않고 그냥 통과시킨다.
+  // 미들웨어는 모든 요청의 입구라, 여기서 터지면 사이트 전체가 500(MIDDLEWARE_INVOCATION_FAILED)이 되고
+  // 진짜 원인이 뭔지 화면에 아무것도 안 남는다. 페이지 쪽에서 제대로 된 메시지를 내도록 넘긴다.
+  if (!hasSupabaseEnv()) {
+    console.error(
+      '[고구마마켓] Supabase 환경 변수가 없어 로그인 세션 갱신을 건너뜁니다. ' +
+        'Vercel > Settings > Environment Variables 를 확인한 뒤 Redeploy 하세요.'
+    )
+    return supabaseResponse
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    SUPABASE_URL,
+    SUPABASE_KEY,
     {
       cookies: {
         getAll() {
