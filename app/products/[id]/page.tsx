@@ -9,8 +9,11 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { StatusSelect } from '@/components/StatusSelect'
 import { DeleteProductButton } from '@/components/DeleteProductButton'
 import { ProductCard } from '@/components/ProductCard'
+import { LikeButton } from '@/components/LikeButton'
+import { ChatIcon } from '@/components/icons'
+import { getLikedIds } from '@/lib/likes'
 
-const SELECT = '*, seller:ggm_profiles(nickname, region)'
+const SELECT = '*, seller:ggm_profiles!ggm_products_seller_id_fkey(nickname, region)'
 
 async function getProduct(id: string) {
   const supabase = await createClient()
@@ -59,13 +62,17 @@ export default async function ProductDetailPage({
   }
 
   // 같은 판매자의 다른 물건
-  const { data: others } = await supabase
+  const { data: otherRows } = await supabase
     .from('ggm_products')
     .select(SELECT)
     .eq('seller_id', product.seller_id)
     .neq('id', id)
     .order('created_at', { ascending: false })
     .limit(4)
+
+  const others = (otherRows ?? []) as ProductWithSeller[]
+  // 이 글 + 같은 판매자의 다른 글까지 한 번에 "내가 찜했는지" 확인
+  const likedIds = await getLikedIds([product.id, ...others.map((p) => p.id)])
 
   const sellerName = product.seller?.nickname ?? '알 수 없음'
 
@@ -116,7 +123,9 @@ export default async function ProductDetailPage({
             {product.description || '설명이 없어요.'}
           </p>
 
-          <p className="text-[13px] text-neutral-400">조회 {viewCount}회</p>
+          <p className="text-[13px] text-neutral-400">
+            관심 {product.like_count ?? 0} · 조회 {viewCount}회
+          </p>
 
           {/* 액션 */}
           <div className="mt-7 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-6">
@@ -133,19 +142,21 @@ export default async function ProductDetailPage({
               </>
             ) : (
               <>
+                <LikeButton
+                  productId={product.id}
+                  liked={likedIds.has(product.id)}
+                  count={product.like_count ?? 0}
+                  size="lg"
+                />
                 <button
                   type="button"
                   disabled
                   title="다음 단계에서 만들 예정이에요"
-                  className="flex h-12 flex-1 items-center justify-center rounded-lg bg-neutral-200 px-5 text-[15px] font-bold text-neutral-400"
+                  className="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-lg bg-neutral-200 px-5 text-[15px] font-bold text-neutral-400"
                 >
+                  <ChatIcon className="h-5 w-5" />
                   채팅하기 (준비 중)
                 </button>
-                {!user && (
-                  <Link href={`/login?next=/products/${product.id}`} className="btn-outline flex-1">
-                    로그인하고 문의하기
-                  </Link>
-                )}
               </>
             )}
           </div>
@@ -159,15 +170,15 @@ export default async function ProductDetailPage({
       </div>
 
       {/* 같은 판매자의 다른 물건 */}
-      {others && others.length > 0 && (
+      {others.length > 0 && (
         <section className="mt-16 border-t border-neutral-100 pt-8">
           <h2 className="text-[18px] font-bold text-neutral-900">
             {sellerName}님의 판매 물품
           </h2>
           <ul className="mt-5 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-4">
-            {(others as ProductWithSeller[]).map((p) => (
+            {others.map((p) => (
               <li key={p.id}>
-                <ProductCard product={p} />
+                <ProductCard product={p} liked={likedIds.has(p.id)} />
               </li>
             ))}
           </ul>

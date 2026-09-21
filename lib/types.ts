@@ -17,6 +17,8 @@ export type Product = {
   status: ProductStatus
   images: string[]
   view_count: number
+  /** 찜 개수. ggm_likes 트리거가 자동으로 맞춰준다 */
+  like_count: number
   created_at: string
   updated_at: string
 }

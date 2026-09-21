@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { SweetPotato } from '@/components/SweetPotato'
 import { ProductCard } from '@/components/ProductCard'
+import { getLikedIds } from '@/lib/likes'
 import type { ProductWithSeller } from '@/lib/types'
 
 export default async function HomePage() {
@@ -11,13 +12,14 @@ export default async function HomePage() {
     supabase.auth.getUser(),
     supabase
       .from('ggm_products')
-      .select('*, seller:ggm_profiles(nickname, region)')
+      .select('*, seller:ggm_profiles!ggm_products_seller_id_fkey(nickname, region)')
       .order('created_at', { ascending: false })
       .limit(8),
   ])
 
   const user = auth.user
   const products = (latest ?? []) as ProductWithSeller[]
+  const likedIds = await getLikedIds(products.map((p) => p.id))
 
   let nickname: string | null = null
   if (user) {
@@ -110,7 +112,7 @@ export default async function HomePage() {
           <ul className="mt-7 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
             {products.map((p) => (
               <li key={p.id}>
-                <ProductCard product={p} />
+                <ProductCard product={p} liked={likedIds.has(p.id)} />
               </li>
             ))}
           </ul>

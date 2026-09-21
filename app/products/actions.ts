@@ -157,6 +157,58 @@ export async function deleteProductAction(formData: FormData) {
   redirect('/products')
 }
 
+// ---------------------------------------------------------------- 찜하기
+
+export type ToggleLikeResult = {
+  ok: boolean
+  /** 처리 후 상태 */
+  liked?: boolean
+  /** 로그인이 필요한 경우 */
+  needLogin?: boolean
+  error?: string
+}
+
+/**
+ * 찜을 켜고 끈다. 이미 찜했으면 취소, 아니면 추가.
+ * 찜 개수(ggm_products.like_count)는 DB 트리거가 알아서 맞춰준다.
+ */
+export async function toggleLikeAction(productId: string): Promise<ToggleLikeResult> {
+  if (!productId) return { ok: false, error: '잘못된 요청이에요.' }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, needLogin: true }
+
+  const { data: existing } = await supabase
+    .from('ggm_likes')
+    .select('product_id')
+    .eq('product_id', productId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (existing) {
+    const { error } = await supabase
+      .from('ggm_likes')
+      .delete()
+      .eq('product_id', productId)
+      .eq('user_id', user.id)
+    if (error) return { ok: false, error: error.message }
+  } else {
+    const { error } = await supabase
+      .from('ggm_likes')
+      .insert({ product_id: productId, user_id: user.id })
+    if (error) return { ok: false, error: error.message }
+  }
+
+  revalidatePath('/')
+  revalidatePath('/products')
+  revalidatePath(`/products/${productId}`)
+
+  return { ok: true, liked: !existing }
+}
+
 // ---------------------------------------------------------------- 상태 변경
 
 export async function updateStatusAction(formData: FormData) {

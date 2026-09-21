@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { CATEGORIES, isCategory } from '@/lib/categories'
 import { ProductCard } from '@/components/ProductCard'
 import { SweetPotato } from '@/components/SweetPotato'
+import { getLikedIds } from '@/lib/likes'
 import type { ProductWithSeller } from '@/lib/types'
 
 export const metadata: Metadata = { title: '중고거래' }
@@ -26,7 +27,7 @@ export default async function ProductsPage({
 
   let query = supabase
     .from('ggm_products')
-    .select('*, seller:ggm_profiles(nickname, region)')
+    .select('*, seller:ggm_profiles!ggm_products_seller_id_fkey(nickname, region)')
     .order('created_at', { ascending: false })
     .limit(60)
 
@@ -35,6 +36,7 @@ export default async function ProductsPage({
 
   const { data, error } = await query
   const products = (data ?? []) as ProductWithSeller[]
+  const likedIds = await getLikedIds(products.map((p) => p.id))
 
   return (
     <div className="mx-auto max-w-[1024px] px-5 py-8">
@@ -88,7 +90,7 @@ export default async function ProductsPage({
         <ul className="mt-7 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
           {products.map((p) => (
             <li key={p.id}>
-              <ProductCard product={p} />
+              <ProductCard product={p} liked={likedIds.has(p.id)} />
             </li>
           ))}
         </ul>
