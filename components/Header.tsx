@@ -3,12 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { signOutAction } from '@/app/auth/actions'
 import { Wordmark } from './SweetPotato'
 
-const NAV = [
-  { href: '/', label: '중고거래' },
-  { href: '/#soon', label: '동네업체' },
-  { href: '/#soon', label: '알바' },
-  { href: '/#soon', label: '부동산' },
-]
+// 실제로 동작하는 메뉴만 둔다. 기능이 생기면 여기에 추가.
+const NAV = [{ href: '/products', label: '중고거래' }]
 
 export async function Header() {
   const supabase = await createClient()
@@ -34,13 +30,11 @@ export async function Header() {
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">
-          {NAV.map((item, i) => (
+          {NAV.map((item) => (
             <Link
               key={item.label}
               href={item.href}
-              className={`text-[15px] transition hover:text-ggm-500 ${
-                i === 0 ? 'font-bold text-neutral-900' : 'font-medium text-neutral-500'
-              }`}
+              className="text-[15px] font-bold text-neutral-900 transition hover:text-ggm-500"
             >
               {item.label}
             </Link>
@@ -53,6 +47,12 @@ export async function Header() {
               <span className="hidden text-[14px] text-neutral-600 sm:inline">
                 <b className="font-bold text-neutral-900">{nickname}</b>님
               </span>
+              <Link
+                href="/write"
+                className="flex h-9 items-center rounded-lg bg-ggm-500 px-3.5 text-[14px] font-bold text-white transition hover:bg-ggm-600"
+              >
+                글쓰기
+              </Link>
               <form action={signOutAction}>
                 <button
                   type="submit"

@@ -13,9 +13,10 @@
 | 단계 | 내용 | 상태 |
 | --- | --- | --- |
 | 1 | 회원가입 / 로그인 / 로그아웃, 프로필 테이블 | ✅ 완료 |
-| 2 | 중고 물품 등록 (이미지 업로드 포함) | ⬜ |
-| 3 | 매물 목록 · 상세 · 카테고리/지역 필터 | ⬜ |
-| 4 | 관심(찜), 채팅 | ⬜ |
+| 2 | 거래 글 CRUD — 등록·목록·상세·수정·삭제, 이미지 업로드, 판매 상태, 검색/카테고리 | ✅ 완료 |
+| 3 | 관심(찜) | ⬜ |
+| 4 | 이웃과 1:1 채팅 | ⬜ |
+| 5 | 마이페이지 (내 판매 목록, 프로필 수정) | ⬜ |
 
 ---
 
@@ -43,7 +44,8 @@ npm run dev
 같은 Supabase 프로젝트를 쓰기 때문에 **테이블 이름이 겹치지 않도록 `ggm_` 접두사**를 붙입니다.
 
 - 가계부: `public.entries`
-- 고구마마켓: `public.ggm_profiles`, (앞으로) `ggm_products`, `ggm_chats` …
+- 고구마마켓: `public.ggm_profiles`, `public.ggm_products`, (앞으로) `ggm_likes`, `ggm_chats` …
+- Storage 버킷도 마찬가지로 `ggm-products`
 
 Auth(`auth.users`)는 두 서비스가 공유하지만, 가계부는 로그인을 쓰지 않으므로 충돌하지 않습니다.
 
@@ -55,24 +57,43 @@ Auth(`auth.users`)는 두 서비스가 공유하지만, 가계부는 로그인�
 
 ```
 app/
-  layout.tsx            공통 레이아웃 (헤더/푸터)
-  page.tsx              홈
-  globals.css           Tailwind + 고구마 디자인 토큰
+  layout.tsx                 공통 레이아웃 (헤더/푸터)
+  page.tsx                   홈 (히어로 + 최신 매물 8개)
+  globals.css                Tailwind + 고구마 디자인 토큰
   (auth)/
-    layout.tsx          로그인·회원가입 공통 껍데기
+    layout.tsx               로그인·회원가입 공통 껍데기
     login/page.tsx
     signup/page.tsx
   auth/
-    actions.ts          signUp / signIn / signOut 서버 액션
-    callback/route.ts   이메일 인증 링크 착지점
-components/             Header, Footer, 폼, 고구마 로고
-lib/supabase/
-  client.ts             브라우저용 클라이언트
-  server.ts             서버 컴포넌트/액션용 클라이언트
-  middleware.ts         세션 자동 갱신 + 접근 제어
-middleware.ts           위 updateSession 을 전역에 연결
-supabase/migrations/    적용한 SQL 기록
+    actions.ts               signUp / signIn / signOut 서버 액션
+    callback/route.ts        이메일 인증 링크 착지점
+  products/
+    page.tsx                 목록 + 검색 + 카테고리 필터
+    actions.ts               create / update / delete / status 서버 액션
+    [id]/page.tsx            상세
+    [id]/edit/page.tsx       수정
+  write/page.tsx             등록 (로그인 필요)
+components/                  Header, Footer, ProductCard, ProductForm …
+lib/
+  categories.ts              카테고리 목록
+  format.ts                  가격·상대시간·이미지 URL
+  types.ts                   Product 타입
+  supabase/client.ts         브라우저용 클라이언트
+  supabase/server.ts         서버 컴포넌트/액션용 클라이언트
+  supabase/middleware.ts     세션 자동 갱신 + 접근 제어
+middleware.ts                위 updateSession 을 전역에 연결
+supabase/migrations/         적용한 SQL 기록
 ```
+
+### 거래 글이 저장되는 흐름
+
+1. `/write` 폼에서 사진을 고르면 **브라우저가 직접** Supabase Storage로 업로드
+   (`<user_id>/<uuid>.png` — 첫 폴더가 본인 uid일 때만 쓸 수 있게 정책이 걸려 있음)
+2. 업로드된 **경로**만 서버 액션에 넘겨서 `ggm_products.images` 배열에 저장
+3. 화면에 보여줄 때는 `lib/format.ts`의 `imageUrl()`이 공개 URL로 조립
+4. 글을 수정하며 사진을 빼면 Storage에서도 같이 지운다 (삭제도 동일)
+
+RLS 덕분에 남의 글은 **서버 액션을 직접 호출해도** 수정·삭제되지 않습니다.
 
 ### 인증이 도는 흐름
 
@@ -113,3 +134,28 @@ supabase/migrations/    적용한 SQL 기록
 | `ggm-500` | `#9a3f76` | 브랜드 메인 (자색고구마 껍질) |
 | `yam-500` | `#f5a93c` | 포인트 (고구마 속살) |
 | `cream` | `#fffaf4` | 배경 |
+
+---
+
+## 샘플 데이터
+
+구경할 거리가 있도록 판매자 3명과 상품 10개를 넣어뒀습니다. 모두 **비밀번호는 `goguma1234`**.
+
+| 닉네임 | 이메일 | 동네 |
+| --- | --- | --- |
+| 감자대장 | `gamja@example.com` | 고구마동 |
+| 호박여사 | `hobak@example.com` | 밤고구마동 |
+| 당근이네 | `danggeun@example.com` | 호박고구마동 |
+
+이 계정으로 로그인하면 해당 판매자의 글을 수정·삭제해 볼 수 있습니다.
+전부 지우려면:
+
+```sql
+delete from public.ggm_products
+ where seller_id in (
+   select id from public.ggm_profiles
+    where email in ('gamja@example.com','hobak@example.com','danggeun@example.com')
+ );
+```
+
+(Storage에 올라간 샘플 이미지는 대시보드의 `ggm-products` 버킷에서 지우면 됩니다.)

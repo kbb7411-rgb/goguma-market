@@ -1,18 +1,23 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { SweetPotato } from '@/components/SweetPotato'
-
-const STEPS = [
-  { emoji: '📝', title: '중고 물품 등록', desc: '사진과 가격을 올려 동네에 내놓기', done: false },
-  { emoji: '🔍', title: '동네 매물 둘러보기', desc: '카테고리·지역별로 찾아보기', done: false },
-  { emoji: '💬', title: '이웃과 채팅', desc: '실시간으로 거래 약속 잡기', done: false },
-]
+import { ProductCard } from '@/components/ProductCard'
+import type { ProductWithSeller } from '@/lib/types'
 
 export default async function HomePage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+
+  const [{ data: auth }, { data: latest }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from('ggm_products')
+      .select('*, seller:ggm_profiles(nickname, region)')
+      .order('created_at', { ascending: false })
+      .limit(8),
+  ])
+
+  const user = auth.user
+  const products = (latest ?? []) as ProductWithSeller[]
 
   let nickname: string | null = null
   if (user) {
@@ -28,17 +33,11 @@ export default async function HomePage() {
     <>
       {/* 히어로 */}
       <section className="bg-cream">
-        <div className="mx-auto grid max-w-[1024px] items-center gap-10 px-5 py-16 sm:py-24 md:grid-cols-2">
+        <div className="mx-auto grid max-w-[1024px] items-center gap-10 px-5 py-16 sm:py-20 md:grid-cols-2">
           <div className="flex flex-col gap-5">
-            {user ? (
-              <span className="w-fit rounded-full bg-ggm-100 px-3 py-1 text-[13px] font-bold text-ggm-600">
-                {nickname ?? '이웃'}님, 오늘도 좋은 거래 되세요 🍠
-              </span>
-            ) : (
-              <span className="w-fit rounded-full bg-ggm-100 px-3 py-1 text-[13px] font-bold text-ggm-600">
-                우리 동네 중고 직거래
-              </span>
-            )}
+            <span className="w-fit rounded-full bg-ggm-100 px-3 py-1 text-[13px] font-bold text-ggm-600">
+              {user ? `${nickname ?? '이웃'}님, 오늘도 좋은 거래 되세요 🍠` : '우리 동네 중고 직거래'}
+            </span>
 
             <h1 className="text-[34px] font-extrabold leading-[1.25] tracking-tight text-neutral-900 sm:text-[42px]">
               당신 근처의
@@ -53,33 +52,22 @@ export default async function HomePage() {
             </p>
 
             <div className="mt-2 flex gap-3">
-              {user ? (
-                <Link
-                  href="/#next"
-                  className="flex h-12 items-center rounded-lg bg-ggm-500 px-6 text-[15px] font-bold text-white transition hover:bg-ggm-600"
-                >
-                  동네 매물 보기
-                </Link>
-              ) : (
-                <>
-                  <Link
-                    href="/signup"
-                    className="flex h-12 items-center rounded-lg bg-ggm-500 px-6 text-[15px] font-bold text-white transition hover:bg-ggm-600"
-                  >
-                    회원가입
-                  </Link>
-                  <Link
-                    href="/login"
-                    className="flex h-12 items-center rounded-lg border border-neutral-200 bg-white px-6 text-[15px] font-bold text-neutral-700 transition hover:bg-neutral-50"
-                  >
-                    로그인
-                  </Link>
-                </>
-              )}
+              <Link
+                href="/products"
+                className="flex h-12 items-center rounded-lg bg-ggm-500 px-6 text-[15px] font-bold text-white transition hover:bg-ggm-600"
+              >
+                동네 매물 보기
+              </Link>
+              <Link
+                href={user ? '/write' : '/login?next=/write'}
+                className="flex h-12 items-center rounded-lg border border-neutral-200 bg-white px-6 text-[15px] font-bold text-neutral-700 transition hover:bg-neutral-50"
+              >
+                물건 팔기
+              </Link>
             </div>
           </div>
 
-          {/* 일러스트 자리 */}
+          {/* 일러스트 */}
           <div className="relative hidden justify-self-center md:flex">
             <div className="flex h-[280px] w-[280px] items-center justify-center rounded-full bg-ggm-100">
               <SweetPotato className="h-40 w-40 text-ggm-500 drop-shadow-sm" />
@@ -87,38 +75,46 @@ export default async function HomePage() {
             <span className="absolute -right-2 top-4 rounded-2xl rounded-bl-md bg-white px-4 py-2 text-[14px] font-semibold text-neutral-700 shadow-md">
               고구마 한 박스 나눔해요!
             </span>
-            <span className="absolute -left-4 bottom-8 rounded-2xl rounded-br-md bg-yam-500 px-4 py-2 text-[14px] font-bold text-white shadow-md">
+            <span className="absolute -left-6 bottom-6 rounded-2xl rounded-br-md bg-yam-500 px-4 py-2 text-[14px] font-bold text-white shadow-md">
               지금 갈게요 🙌
             </span>
           </div>
         </div>
       </section>
 
-      {/* 다음 단계 안내 */}
-      <section id="next" className="mx-auto max-w-[1024px] scroll-mt-20 px-5 py-16">
-        <h2 className="text-[22px] font-extrabold tracking-tight text-neutral-900">
-          다음은 이런 걸 만들 거예요
-        </h2>
-        <p className="mt-2 text-[15px] text-neutral-500">
-          1단계 회원가입 · 로그인은 완성됐어요. 하나씩 이어서 붙여 나갑니다.
-        </p>
+      {/* 최신 매물 */}
+      <section className="mx-auto max-w-[1024px] px-5 py-14">
+        <div className="flex items-end justify-between">
+          <h2 className="text-[22px] font-extrabold tracking-tight text-neutral-900">
+            따끈따끈한 중고 물건
+          </h2>
+          <Link href="/products" className="text-[14px] font-semibold text-neutral-500 hover:text-ggm-500">
+            더 보기 →
+          </Link>
+        </div>
 
-        <ul className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <li className="rounded-2xl border border-ggm-200 bg-ggm-50 p-5">
-            <div className="text-[22px]">✅</div>
-            <h3 className="mt-3 text-[16px] font-bold text-ggm-700">회원가입 · 로그인</h3>
-            <p className="mt-1 text-[14px] leading-relaxed text-ggm-600">
-              Supabase Auth + 프로필 테이블 연동 완료
+        {products.length === 0 ? (
+          <div className="mt-8 flex flex-col items-center gap-4 rounded-2xl border border-dashed border-neutral-200 py-16 text-center">
+            <SweetPotato className="h-12 w-12 text-ggm-200" />
+            <p className="text-[15px] text-neutral-500">
+              아직 올라온 물건이 없어요. 첫 고구마를 캐볼까요?
             </p>
-          </li>
-          {STEPS.map((s) => (
-            <li key={s.title} className="rounded-2xl border border-neutral-100 bg-white p-5">
-              <div className="text-[22px] opacity-60">{s.emoji}</div>
-              <h3 className="mt-3 text-[16px] font-bold text-neutral-800">{s.title}</h3>
-              <p className="mt-1 text-[14px] leading-relaxed text-neutral-500">{s.desc}</p>
-            </li>
-          ))}
-        </ul>
+            <Link
+              href={user ? '/write' : '/login?next=/write'}
+              className="flex h-11 items-center rounded-lg bg-ggm-500 px-5 text-[15px] font-bold text-white transition hover:bg-ggm-600"
+            >
+              물건 팔기
+            </Link>
+          </div>
+        ) : (
+          <ul className="mt-7 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+            {products.map((p) => (
+              <li key={p.id}>
+                <ProductCard product={p} />
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </>
   )
