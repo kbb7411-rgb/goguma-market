@@ -82,6 +82,7 @@ lib/
   supabase/server.ts         서버 컴포넌트/액션용 클라이언트
   supabase/middleware.ts     세션 자동 갱신 + 접근 제어
 middleware.ts                위 updateSession 을 전역에 연결
+public/seed/                 연습용 예시 글에 쓰는 사진 (출처는 같은 폴더의 사진-출처.md)
 supabase/migrations/         적용한 SQL 기록
 ```
 
@@ -92,6 +93,12 @@ supabase/migrations/         적용한 SQL 기록
 2. 업로드된 **경로**만 서버 액션에 넘겨서 `ggm_products.images` 배열에 저장
 3. 화면에 보여줄 때는 `lib/format.ts`의 `imageUrl()`이 공개 URL로 조립
 4. 글을 수정하며 사진을 빼면 Storage에서도 같이 지운다 (삭제도 동일)
+
+> 연습용 예시 글 10개의 사진만 예외입니다.
+> Storage에 파일을 넣으려면 관리자 키(service_role)가 필요해서, 예시 사진은
+> `public/seed/` 폴더에 두고 `images` 배열에 `/seed/파일이름.jpg` 형태로 적어 두었습니다.
+> `imageUrl()` 은 `/` 로 시작하는 주소를 그대로 통과시킵니다.
+> (사진 출처: 위키미디어 공용의 자유 라이선스 사진 — `public/seed/사진-출처.md`)
 
 RLS 덕분에 남의 글은 **서버 액션을 직접 호출해도** 수정·삭제되지 않습니다.
 
